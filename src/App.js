@@ -6,7 +6,7 @@ import Sidenav from "examples/Sidenav";
 import Configurator from "examples/Settings";
 import theme from "assets/theme";
 import routes from "routes";
-import brand from "./assets/images/curved-images/curved-6.jpg"
+import brand from "./assets/images/bruce-mars.jpg"
 import { useSoftUIController, setMiniSidenav } from "context";
 import 'bootstrap/dist/css/bootstrap.css';
 

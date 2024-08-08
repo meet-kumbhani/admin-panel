@@ -1,16 +1,12 @@
 import { useMemo } from "react";
 import PropTypes from "prop-types";
 import { v4 as uuidv4 } from "uuid";
-
 import { Table as MuiTable } from "@mui/material";
 import TableBody from "@mui/material/TableBody";
 import TableContainer from "@mui/material/TableContainer";
 import TableRow from "@mui/material/TableRow";
-
 import SoftBox from "components/SoftBox";
-import SoftAvatar from "components/SoftAvatar";
 import SoftTypography from "components/SoftTypography";
-
 import colors from "assets/theme/base/colors";
 import typography from "assets/theme/base/typography";
 import borders from "assets/theme/base/borders";
@@ -71,9 +67,7 @@ function Table({ columns, rows }) {
             borderBottom={row.hasBorder ? `${borderWidth[1]} solid ${light.main}` : null}
           >
             <SoftBox display="flex" alignItems="center" py={0.5} px={1}>
-              <SoftBox mr={2}>
-                <SoftAvatar src={row[name][0]} name={row[name][1]} variant="rounded" size="sm" />
-              </SoftBox>
+
               <SoftTypography variant="button" fontWeight="medium" sx={{ width: "max-content" }}>
                 {row[name][1]}
               </SoftTypography>

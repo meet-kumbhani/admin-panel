@@ -9,8 +9,9 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import axios from 'axios';
+import location from "../../assets/images/location.png"
 
-const Client = () => {
+const ClientDetails = () => {
      const { id } = useParams()
      const [evidence, setEvidence] = useState(null);
      const [locations, setLocations] = useState({});
@@ -19,6 +20,12 @@ const Client = () => {
 
      const GOOGLE_MAPS_API_KEY = 'AIzaSyBHyngtjTulkJ96GKevrg7jpxwypD1Kx-k';
 
+     const customIcon = L.icon({
+          iconUrl: location,
+          iconSize: [40, 40],
+          iconAnchor: [19, 38],
+          popupAnchor: [0, -38]
+     });
 
      useEffect(() => {
           const getEvidence = () => {
@@ -83,7 +90,9 @@ const Client = () => {
      return (
           <DashboardLayout>
                <SoftBox>
-                    <SoftTypography>Client Details</SoftTypography>
+                    <SoftTypography variant="h4" gutterBottom>
+                         Client Details
+                    </SoftTypography>
                     <SoftTypography>
                          {evidence ? (
                               <SoftBox>
@@ -106,7 +115,7 @@ const Client = () => {
                                                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                                                   />
                                                   {evidence?.evidence?.map((attachment) => (
-                                                       <Marker key={`${attachment.lat},${attachment.lng}`} position={[attachment.lat, attachment.lng]}>
+                                                       <Marker key={`${attachment.lat},${attachment.lng}`} position={[attachment.lat, attachment.lng]} icon={customIcon}>
                                                             <Popup>
                                                                  <img src={attachment.url} alt="" width={200} /><br />
                                                                  Location: {locations[`${attachment.lat},${attachment.lng}`] || 'Loading...'}
@@ -118,7 +127,9 @@ const Client = () => {
                                    </SoftBox>
                               </SoftBox>
                          ) : (
-                              <SoftTypography>No matching evidence found.</SoftTypography>
+                              <SoftBox mt={4} sx={{ display: "flex", justifyContent: "center", height: "80vh", alignItems: "center" }}>
+                                   <SoftTypography variant="h4">No matching evidence found.</SoftTypography>
+                              </SoftBox>
                          )}
                     </SoftTypography>
                </SoftBox>
@@ -126,4 +137,4 @@ const Client = () => {
      );
 };
 
-export default Client;
+export default ClientDetails;

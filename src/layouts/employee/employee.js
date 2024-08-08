@@ -9,8 +9,9 @@ import DashboardNavbar from 'examples/Navbars/DashboardNavbar';
 import { db } from '../../firebase/config';
 import Table from 'examples/Tables/Table';
 import Swal from 'sweetalert2';
+import Form from 'react-bootstrap/Form';
 import { useNavigate } from 'react-router-dom';
-import { Card } from '@mui/material';
+import { Card, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
 
 
 const Employee = () => {
@@ -22,7 +23,22 @@ const Employee = () => {
      });
      const [employee, setEmployee] = useState([]);
      const [editingId, setEditingId] = useState(null);
+     const [open, setOpen] = useState(false);
+     const [loading, setLoading] = useState(true);
+
      const navigate = useNavigate()
+
+     useEffect(() => {
+          const q = query(collection(db, 'users'), where('role', 'array-contains', 'employee'));
+          const unsubscribe = onSnapshot(q, (snapshot) => {
+               const userList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+               setEmployee(userList);
+               setLoading(false);
+          });
+
+          return () => unsubscribe();
+     }, []);
+
 
      const handleChange = (e) => {
           const { name, value } = e.target;
@@ -51,8 +67,23 @@ const Employee = () => {
                     phone: '',
                     address: ''
                });
+               Swal.fire({
+                    position: "middle",
+                    icon: "success",
+                    title: "Data successfully added!",
+                    showConfirmButton: false,
+                    timer: 1500
+               });
+               setOpen(false)
           } catch (error) {
-               console.error("Error adding/updating document: ", error);
+               console.error("Error adding Data", error);
+               Swal.fire({
+                    position: "middle",
+                    icon: "success",
+                    title: "Error adding Data",
+                    showConfirmButton: false,
+                    timer: 1500
+               });
           }
      };
 
@@ -60,6 +91,7 @@ const Employee = () => {
           const userToEdit = employee.find(user => user.id === id);
           setFormData(userToEdit);
           setEditingId(id);
+          setOpen(true)
      };
 
      const handleDelete = async (id) => {
@@ -92,18 +124,19 @@ const Employee = () => {
           }
      };
 
-     useEffect(() => {
-          const q = query(collection(db, 'users'), where('role', 'array-contains', 'employee'));
-          const unsubscribe = onSnapshot(q, (snapshot) => {
-               const userList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-               setEmployee(userList);
-          });
-
-          return () => unsubscribe();
-     }, []);
-
      const handleViewDetail = (id) => {
           navigate(`/employee-details/${id}`);
+     };
+
+     const handleCancel = () => {
+          setFormData({
+               name: '',
+               email: '',
+               phone: '',
+               address: ''
+          });
+          setEditingId(null);
+          setOpen(false)
      };
 
 
@@ -133,90 +166,131 @@ const Employee = () => {
      return (
           <DashboardLayout>
                <DashboardNavbar />
-               <form onSubmit={handleSubmit}>
-                    <SoftBox mb={1}>
-                         <SoftBox mb={1} ml={0.5}>
-                              <SoftTypography component="label" variant="caption" fontWeight="bold">
-                                   Name
-                              </SoftTypography>
-                         </SoftBox>
-                         <SoftInput
-                              name="name"
-                              value={formData.name}
-                              onChange={handleChange}
-                              placeholder="Enter name"
-                         />
-                    </SoftBox>
 
-                    <SoftBox mb={1}>
-                         <SoftBox mb={1} ml={0.5}>
-                              <SoftTypography component="label" variant="caption" fontWeight="bold">
-                                   E-mail
-                              </SoftTypography>
-                         </SoftBox>
-                         <SoftInput
-                              name="email"
-                              type="email"
-                              value={formData.email}
-                              onChange={handleChange}
-                              placeholder="Enter email"
-                         />
-                    </SoftBox>
-
-                    <SoftBox mb={1}>
-                         <SoftBox mb={1} ml={0.5}>
-                              <SoftTypography component="label" variant="caption" fontWeight="bold">
-                                   Phone
-                              </SoftTypography>
-                         </SoftBox>
-                         <SoftInput
-                              name="phone"
-                              value={formData.phone}
-                              onChange={handleChange}
-                              placeholder="Enter phone number"
-                         />
-                    </SoftBox>
-
-                    <SoftBox mb={1}>
-                         <SoftBox mb={1} ml={0.5}>
-                              <SoftTypography component="label" variant="caption" fontWeight="bold">
-                                   Address
-                              </SoftTypography>
-                         </SoftBox>
-                         <SoftInput
-                              name="address"
-                              value={formData.address}
-                              onChange={handleChange}
-                              placeholder="Enter address"
-                         />
-                    </SoftBox>
-
-                    <SoftButton variant="gradient" color="info" type="submit">
-                         {editingId ? 'Update' : 'Submit'}
-                    </SoftButton>
-               </form>
-
-               {employee.length > 0 ? (
-                    <Card sx={{ marginTop: 5 }}>
-                         <SoftBox display="flex" justifyContent="space-between" alignItems="center" p={3}>
-                              <SoftTypography variant="h5">Employee List</SoftTypography>
-                         </SoftBox>
-                         <SoftBox
-                              sx={{
-                                   "& .MuiTableRow-root:not(:last-child)": {
-                                        "& td": {
-                                             borderBottom: ({ borders: { borderWidth, borderColor } }) =>
-                                                  `${borderWidth[1]} solid ${borderColor}`,
-                                        },
-                                   },
-                              }}
+               <SoftBox py={3}>
+                    <SoftBox display="flex" justifyContent="end" alignItems="center" px={3}>
+                         <SoftButton
+                              variant="gradient"
+                              color="info"
+                              size="small"
+                              onClick={() => setOpen(true)}
                          >
-                              <Table columns={tableColumns} rows={tableRows} />
-                         </SoftBox>
-                    </Card>
-               ) : (
-                    <p>No employees found</p>
-               )}
+                              Add New Employee
+                         </SoftButton>
+                    </SoftBox>
+
+                    <SoftBox>
+                         {loading ? (
+                              <SoftBox display="flex" justifyContent="center" alignItems="center" height="60vh">
+                                   <CircularProgress />
+                              </SoftBox>
+                         ) : (
+                              <>
+                                   {employee.length > 0 ? (
+                                        <Card sx={{ marginTop: 4 }}>
+                                             <SoftBox display="flex" justifyContent="space-between" alignItems="center" p={3}>
+                                                  <SoftTypography variant="h5">Employee List</SoftTypography>
+                                             </SoftBox>
+                                             <SoftBox
+                                                  sx={{
+                                                       "& .MuiTableRow-root:not(:last-child)": {
+                                                            "& td": {
+                                                                 borderBottom: ({ borders: { borderWidth, borderColor } }) =>
+                                                                      `${borderWidth[1]} solid ${borderColor}`,
+                                                            },
+                                                       },
+                                                  }}
+                                             >
+                                                  <Table columns={tableColumns} rows={tableRows} />
+                                             </SoftBox>
+                                        </Card>
+                                   ) : (
+                                        <p>No employees found</p>
+                                   )}
+                              </>
+                         )}
+                    </SoftBox>
+               </SoftBox>
+
+               <Dialog open={open} onClose={handleCancel} fullWidth maxWidth="md">
+                    <DialogTitle>{editingId ? 'Edit Employee' : 'Add New Employee'}</DialogTitle>
+                    <DialogContent>
+                         <Form onSubmit={handleSubmit}>
+                              <SoftBox mb={1}>
+                                   <SoftBox mb={1} ml={0.5}>
+                                        <SoftTypography component="label" variant="caption" fontWeight="bold">
+                                             Name
+                                        </SoftTypography>
+                                   </SoftBox>
+                                   <SoftInput
+                                        name="name"
+                                        value={formData.name}
+                                        onChange={handleChange}
+                                        placeholder="Enter name"
+                                   />
+                              </SoftBox>
+
+                              <SoftBox mb={1}>
+                                   <SoftBox mb={1} ml={0.5}>
+                                        <SoftTypography component="label" variant="caption" fontWeight="bold">
+                                             E-mail
+                                        </SoftTypography>
+                                   </SoftBox>
+                                   <SoftInput
+                                        name="email"
+                                        type="email"
+                                        value={formData.email}
+                                        onChange={handleChange}
+                                        placeholder="Enter email"
+                                   />
+                              </SoftBox>
+
+                              <SoftBox mb={1}>
+                                   <SoftBox mb={1} ml={0.5}>
+                                        <SoftTypography component="label" variant="caption" fontWeight="bold">
+                                             Phone
+                                        </SoftTypography>
+                                   </SoftBox>
+                                   <SoftInput
+                                        name="phone"
+                                        value={formData.phone}
+                                        onChange={handleChange}
+                                        placeholder="Enter phone number"
+                                   />
+                              </SoftBox>
+
+                              <SoftBox mb={1}>
+                                   <SoftBox mb={1} ml={0.5}>
+                                        <SoftTypography component="label" variant="caption" fontWeight="bold">
+                                             Address
+                                        </SoftTypography>
+                                   </SoftBox>
+                                   <SoftInput
+                                        name="address"
+                                        value={formData.address}
+                                        onChange={handleChange}
+                                        placeholder="Enter address"
+                                   />
+                              </SoftBox>
+                         </Form>
+                    </DialogContent>
+                    <DialogActions>
+                         <SoftButton
+                              onClick={handleCancel}
+                              variant="outlined"
+                              color="secondary"
+                         >
+                              Cancel
+                         </SoftButton>
+                         <SoftButton
+                              onClick={handleSubmit}
+                              variant="contained"
+                              color="primary"
+                         >
+                              {editingId ? 'Update' : 'Add'}
+                         </SoftButton>
+                    </DialogActions>
+               </Dialog>
           </DashboardLayout>
      );
 };

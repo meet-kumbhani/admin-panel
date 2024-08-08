@@ -10,7 +10,8 @@ import SoftButton from 'components/SoftButton';
 import Table from 'examples/Tables/Table';
 import Form from 'react-bootstrap/Form';
 import { useNavigate } from 'react-router-dom';
-import { Card } from '@mui/material';
+import { Card, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Icon } from '@mui/material';
+import Swal from 'sweetalert2';
 
 const Client = () => {
      const [user, setUser] = useState(null);
@@ -18,6 +19,8 @@ const Client = () => {
      const [employees, setEmployees] = useState([]);
      const [selectedEmployees, setSelectedEmployees] = useState([]);
      const [editId, setEditId] = useState(null);
+     const [open, setOpen] = useState(false);
+     const [loading, setLoading] = useState(true);
      const [formValues, setFormValues] = useState({
           name: '',
           email: '',
@@ -38,7 +41,6 @@ const Client = () => {
           });
           return unsubscribe;
      }, []);
-
 
 
      useEffect(() => {
@@ -87,6 +89,7 @@ const Client = () => {
                          }
 
                          setUsers(allUsers);
+                         setLoading(false)
                     } catch (error) {
                          console.error("Error", error);
                     }
@@ -94,6 +97,10 @@ const Client = () => {
 
                getUserData();
           }
+     }, [user]);
+
+     useEffect(() => {
+          fetchData();
      }, [user]);
 
      const handleEmployeeChange = (e) => {
@@ -111,12 +118,17 @@ const Client = () => {
           e.preventDefault();
           try {
                if (Object.values(formValues).some(value => value.trim() === '')) {
-                    alert('Please fill in all fields.');
+                    Swal.fire({
+                         position: "middle",
+                         icon: "error",
+                         title: "Please fill in all fields.",
+                         showConfirmButton: false,
+                         timer: 1500
+                    });
                     return;
                }
 
                if (editId) {
-                    // Update user and client data
                     const userRef = doc(db, 'users', editId);
                     await updateDoc(userRef, {
                          name: formValues.name,
@@ -139,10 +151,14 @@ const Client = () => {
                               users: selectedEmployees,
                          });
                     }
-
-                    alert('Data successfully updated!');
+                    Swal.fire({
+                         position: "middle",
+                         icon: "success",
+                         title: "Data successfully updated!",
+                         showConfirmButton: false,
+                         timer: 1500
+                    });
                } else {
-                    // Add new user and client data
                     const userRef = await addDoc(collection(db, 'users'), {
                          name: formValues.name,
                          active: true,
@@ -164,7 +180,13 @@ const Client = () => {
                          users: selectedEmployees,
                     });
 
-                    alert('Data successfully added!');
+                    Swal.fire({
+                         position: "middle",
+                         icon: "success",
+                         title: "Data successfully added!",
+                         showConfirmButton: false,
+                         timer: 1500
+                    });
                }
 
                setFormValues({
@@ -179,10 +201,17 @@ const Client = () => {
                });
                setSelectedEmployees([]);
                setEditId(null);
+               setOpen(false);
                fetchData();
           } catch (error) {
                console.error('Error adding document: ', error);
-               alert('Error adding data!');
+               Swal.fire({
+                    position: "middle",
+                    icon: "error",
+                    title: "Error adding document!",
+                    showConfirmButton: false,
+                    timer: 1500
+               });
           }
      };
 
@@ -201,6 +230,7 @@ const Client = () => {
                     poc: userToEdit.clients[0]?.poc || '',
                });
                setEditId(id);
+               setOpen(true);
           }
      };
 
@@ -255,12 +285,24 @@ const Client = () => {
           }
      };
 
-     useEffect(() => {
-          fetchData();
-     }, [user]);
-
      const handleViewDetail = (id) => {
           navigate(`/client-details/${id}`);
+     };
+
+     const handleCancel = () => {
+          setFormValues({
+               name: '',
+               email: '',
+               phone: '',
+               address: '',
+               siteName: '',
+               siteLocation: '',
+               siteAddress: '',
+               poc: '',
+          });
+          setSelectedEmployees([]);
+          setEditId(null);
+          setOpen(false);
      };
 
      const tableRows = clientData.map(user => ({
@@ -290,169 +332,196 @@ const Client = () => {
      return (
           <DashboardLayout>
                <DashboardNavbar />
-               <form onSubmit={handleSubmit}>
-                    <SoftBox mb={1}>
-                         <SoftBox mb={1} ml={0.5}>
-                              <SoftTypography component="label" variant="caption" fontWeight="bold">
-                                   Name
-                              </SoftTypography>
-                         </SoftBox>
-                         <SoftInput
-                              name="name"
-                              value={formValues.name}
-                              onChange={handleChange}
-                              placeholder="Enter name"
-                         />
-                    </SoftBox>
 
-                    <SoftBox mb={1}>
-                         <SoftBox mb={1} ml={0.5}>
-                              <SoftTypography component="label" variant="caption" fontWeight="bold">
-                                   E-mail
-                              </SoftTypography>
-                         </SoftBox>
-                         <SoftInput
-                              name="email"
-                              type="email"
-                              value={formValues.email}
-                              onChange={handleChange}
-                              placeholder="Enter email"
-                         />
-                    </SoftBox>
 
-                    <SoftBox mb={1}>
-                         <SoftBox mb={1} ml={0.5}>
-                              <SoftTypography component="label" variant="caption" fontWeight="bold">
-                                   Phone
-                              </SoftTypography>
-                         </SoftBox>
-                         <SoftInput
-                              name="phone"
-                              value={formValues.phone}
-                              onChange={handleChange}
-                              placeholder="Enter phone number"
-                         />
-                    </SoftBox>
-
-                    <SoftBox mb={1}>
-                         <SoftBox mb={1} ml={0.5}>
-                              <SoftTypography component="label" variant="caption" fontWeight="bold">
-                                   Address
-                              </SoftTypography>
-                         </SoftBox>
-                         <SoftInput
-                              name="address"
-                              value={formValues.address}
-                              onChange={handleChange}
-                              placeholder="Enter address"
-                         />
-                    </SoftBox>
-
-                    <SoftBox mb={1}>
-                         <SoftBox mb={1} ml={0.5}>
-                              <SoftTypography component="label" variant="caption" fontWeight="bold">
-                                   Site Name
-                              </SoftTypography>
-                         </SoftBox>
-                         <SoftInput
-                              name="siteName"
-                              value={formValues.siteName}
-                              onChange={handleChange}
-                              placeholder="Enter site name"
-                         />
-                    </SoftBox>
-
-                    <SoftBox mb={1}>
-                         <SoftBox mb={1} ml={0.5}>
-                              <SoftTypography component="label" variant="caption" fontWeight="bold">
-                                   Site Location
-                              </SoftTypography>
-                         </SoftBox>
-                         <SoftInput
-                              name="siteLocation"
-                              value={formValues.siteLocation}
-                              onChange={handleChange}
-                              placeholder="Enter site location"
-                         />
-                    </SoftBox>
-
-                    <SoftBox mb={1}>
-                         <SoftBox mb={1} ml={0.5}>
-                              <SoftTypography component="label" variant="caption" fontWeight="bold">
-                                   Site Address
-                              </SoftTypography>
-                         </SoftBox>
-                         <SoftInput
-                              name="siteAddress"
-                              value={formValues.siteAddress}
-                              onChange={handleChange}
-                              placeholder="Enter site address"
-                         />
-                    </SoftBox>
-
-                    <SoftBox mb={1}>
-                         <SoftBox mb={1} ml={0.5}>
-                              <SoftTypography component="label" variant="caption" fontWeight="bold">
-                                   POC
-                              </SoftTypography>
-                         </SoftBox>
-                         <SoftInput
-                              name="poc"
-                              value={formValues.poc}
-                              onChange={handleChange}
-                              placeholder="Enter POC"
-                         />
-                    </SoftBox>
-
-                    <SoftBox mb={1}>
-                         <SoftBox mb={1} ml={0.5}>
-                              <SoftTypography component="label" variant="caption" fontWeight="bold">
-                                   Select Employee
-                              </SoftTypography>
-                         </SoftBox>
-                         <Form.Select
-                              aria-label="Select employee"
-                              multiple
-                              value={selectedEmployees}
-                              onChange={handleEmployeeChange}
+               <SoftBox py={3}>
+                    <SoftBox display="flex" justifyContent="end" alignItems="center" px={3}>
+                         <SoftButton
+                              variant="gradient"
+                              color="info"
+                              size="small"
+                              onClick={() => setOpen(true)}
                          >
-                              {employees?.map(employee => (
-                                   <option key={employee.id} value={employee.id}>
-                                        {employee.name}
-                                   </option>
-                              ))}
-                         </Form.Select>
+                              Add New Client
+                         </SoftButton>
+                    </SoftBox>
+                    <SoftBox p={3}>
+
+                         {loading ? (
+                              <SoftBox display="flex" justifyContent="center" alignItems="center" height="60vh">
+                                   <CircularProgress />
+                              </SoftBox>
+                         ) : (
+                              <>
+                                   {clientData.length > 0 ? (
+                                        <Card sx={{ marginTop: 4 }}>
+                                             <SoftBox display="flex" justifyContent="space-between" alignItems="center" p={3}>
+                                                  <SoftTypography variant="h5">Client List</SoftTypography>
+                                             </SoftBox>
+                                             <SoftBox
+                                                  sx={{
+                                                       "& .MuiTableRow-root:not(:last-child)": {
+                                                            "& td": {
+                                                                 borderBottom: ({ borders: { borderWidth, borderColor } }) =>
+                                                                      `${borderWidth[1]} solid ${borderColor}`,
+                                                            },
+                                                       },
+                                                  }}
+                                             >
+                                                  <Table columns={tableColumns} rows={tableRows} />
+
+                                             </SoftBox>
+                                        </Card>
+                                   ) : (
+                                        <p>No clients found</p>
+                                   )}
+                              </>
+                         )}
+
                     </SoftBox>
 
+               </SoftBox>
 
 
-                    <SoftButton variant="gradient" color="info" type="submit">
-                         {editId ? 'Update' : 'Submit'}
-                    </SoftButton>
-               </form>
-
-               {clientData.length > 0 ? (
-                    <Card sx={{ marginTop: 5 }}>
-                         <SoftBox display="flex" justifyContent="space-between" alignItems="center" p={3}>
-                              <SoftTypography variant="h5">Client List</SoftTypography>
-                         </SoftBox>
-                         <SoftBox
-                              sx={{
-                                   "& .MuiTableRow-root:not(:last-child)": {
-                                        "& td": {
-                                             borderBottom: ({ borders: { borderWidth, borderColor } }) =>
-                                                  `${borderWidth[1]} solid ${borderColor}`,
-                                        },
-                                   },
-                              }}
+               <Dialog open={open} onClose={handleCancel} fullWidth maxWidth="md">
+                    <DialogTitle>{editId ? 'Edit Client' : 'Add New Client'}</DialogTitle>
+                    <DialogContent>
+                         <Form onSubmit={handleSubmit}>
+                              <SoftBox mb={0.5}>
+                                   <SoftTypography component="label" variant="caption" fontWeight="bold">
+                                        Name
+                                   </SoftTypography>
+                                   <SoftInput
+                                        placeholder="Name"
+                                        name="name"
+                                        value={formValues.name}
+                                        onChange={handleChange}
+                                        fullWidth
+                                   />
+                              </SoftBox>
+                              <SoftBox mb={0.5}>
+                                   <SoftTypography component="label" variant="caption" fontWeight="bold">
+                                        Email
+                                   </SoftTypography>
+                                   <SoftInput
+                                        placeholder="Email"
+                                        name="email"
+                                        value={formValues.email}
+                                        onChange={handleChange}
+                                        fullWidth
+                                   />
+                              </SoftBox>
+                              <SoftBox mb={0.5}>
+                                   <SoftTypography component="label" variant="caption" fontWeight="bold">
+                                        Phone
+                                   </SoftTypography>
+                                   <SoftInput
+                                        placeholder="Phone"
+                                        name="phone"
+                                        value={formValues.phone}
+                                        onChange={handleChange}
+                                        fullWidth
+                                   />
+                              </SoftBox>
+                              <SoftBox mb={0.5}>
+                                   <SoftTypography component="label" variant="caption" fontWeight="bold">
+                                        Address
+                                   </SoftTypography>
+                                   <SoftInput
+                                        placeholder="Address"
+                                        name="address"
+                                        value={formValues.address}
+                                        onChange={handleChange}
+                                        fullWidth
+                                   />
+                              </SoftBox>
+                              <SoftBox mb={0.5}>
+                                   <SoftTypography component="label" variant="caption" fontWeight="bold">
+                                        Site Name
+                                   </SoftTypography>
+                                   <SoftInput
+                                        placeholder="Site Name"
+                                        name="siteName"
+                                        value={formValues.siteName}
+                                        onChange={handleChange}
+                                        fullWidth
+                                   />
+                              </SoftBox>
+                              <SoftBox mb={0.5}>
+                                   <SoftTypography component="label" variant="caption" fontWeight="bold">
+                                        Site Location
+                                   </SoftTypography>
+                                   <SoftInput
+                                        placeholder="Site Location"
+                                        name="siteLocation"
+                                        value={formValues.siteLocation}
+                                        onChange={handleChange}
+                                        fullWidth
+                                   />
+                              </SoftBox>
+                              <SoftBox mb={0.5}>
+                                   <SoftTypography component="label" variant="caption" fontWeight="bold">
+                                        Site Address
+                                   </SoftTypography>
+                                   <SoftInput
+                                        placeholder="Site Address"
+                                        name="siteAddress"
+                                        value={formValues.siteAddress}
+                                        onChange={handleChange}
+                                        fullWidth
+                                   />
+                              </SoftBox>
+                              <SoftBox mb={0.5}>
+                                   <SoftTypography component="label" variant="caption" fontWeight="bold">
+                                        POC
+                                   </SoftTypography>
+                                   <SoftInput
+                                        placeholder="Point of Contact"
+                                        name="poc"
+                                        value={formValues.poc}
+                                        onChange={handleChange}
+                                        fullWidth
+                                   />
+                              </SoftBox>
+                              <SoftBox mb={0.5}>
+                                   <SoftTypography component="label" variant="caption" fontWeight="bold">
+                                        Employees
+                                   </SoftTypography>
+                                   <Form.Group controlId="employeeSelect">
+                                        <Form.Control
+                                             as="select"
+                                             multiple
+                                             value={selectedEmployees}
+                                             onChange={handleEmployeeChange}
+                                        >
+                                             {employees.map(employee => (
+                                                  <option key={employee.id} value={employee.id}>
+                                                       {employee.name}
+                                                  </option>
+                                             ))}
+                                        </Form.Control>
+                                   </Form.Group>
+                              </SoftBox>
+                         </Form>
+                    </DialogContent>
+                    <DialogActions>
+                         <SoftButton
+                              onClick={handleCancel}
+                              variant="outlined"
+                              color="secondary"
                          >
-                              <Table columns={tableColumns} rows={tableRows} />
+                              Cancel
+                         </SoftButton>
+                         <SoftButton
+                              onClick={handleSubmit}
+                              variant="contained"
+                              color="primary"
+                         >
+                              {editId ? 'Update' : 'Add'}
+                         </SoftButton>
+                    </DialogActions>
+               </Dialog>
 
-                         </SoftBox>
-                    </Card>
-               ) : (
-                    <p>No clients found</p>
-               )}
           </DashboardLayout>
      );
 };

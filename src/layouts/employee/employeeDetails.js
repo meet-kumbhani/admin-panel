@@ -6,6 +6,7 @@ import { useParams } from 'react-router-dom'
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore'
 import SoftTypography from 'components/SoftTypography'
 import Table from 'examples/Tables/Table'
+import { Card } from '@mui/material'
 
 const GOOGLE_MAPS_API_KEY = 'AIzaSyBHyngtjTulkJ96GKevrg7jpxwypD1Kx-k';
 
@@ -116,26 +117,41 @@ const EmployeeDetails = () => {
                     <SoftTypography variant="h4" gutterBottom>
                          Employee Details
                     </SoftTypography>
+
                     {employee && (
-                         <SoftBox>
-                              <SoftTypography >Name: {employee.name}</SoftTypography>
-                         </SoftBox>
+                         <Card sx={{ marginTop: 5 }}>
+                              <SoftTypography sx={{ padding: 2 }}><strong>Employee Name:</strong> {employee.name}</SoftTypography>
+                         </Card>
                     )}
 
                </SoftBox>
 
 
                {attendanceRecords.length > 0 ? (
-                    <SoftTypography mt={2}>
-                         <SoftTypography gutterBottom>
-                              Attendance Records
-                         </SoftTypography>
-                         <Table columns={tableColumns} rows={tableRows} />
-                    </SoftTypography>
+                    <Card sx={{ marginTop: 4 }}>
+                         <SoftBox display="flex" justifyContent="space-between" alignItems="center" p={3}>
+                              <SoftTypography variant="h5">Attendance List</SoftTypography>
+                         </SoftBox>
+                         <SoftBox
+                              sx={{
+                                   "& .MuiTableRow-root:not(:last-child)": {
+                                        "& td": {
+                                             borderBottom: ({ borders: { borderWidth, borderColor } }) =>
+                                                  `${borderWidth[1]} solid ${borderColor}`,
+                                        },
+                                   },
+                              }}
+                         >
+                              <Table columns={tableColumns} rows={tableRows} />
+                         </SoftBox>
+                    </Card>
                ) : (
-                    <p>No clients found</p>
-               )}
-          </DashboardLayout>
+                    <SoftBox sx={{ display: "flex", justifyContent: "center", height: "60vh", alignItems: "center" }}>
+                         <SoftTypography variant="h4">No employees found</SoftTypography>
+                    </SoftBox>
+               )
+               }
+          </DashboardLayout >
      );
 };
 

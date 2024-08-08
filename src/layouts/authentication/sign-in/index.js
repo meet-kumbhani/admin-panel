@@ -145,7 +145,6 @@ function SignIn() {
             </SoftButton>
           </SoftBox>
 
-          {error && <SoftTypography color="error">{error}</SoftTypography>}
         </SoftBox>
 
         <SoftBox mb={2}>
@@ -162,6 +161,7 @@ function SignIn() {
             disabled={!isOtpSent}
           />
         </SoftBox>
+        {error && <SoftTypography color="error">{error}</SoftTypography>}
         <SoftBox mt={4} mb={1}>
           <SoftButton variant="gradient" color="info" fullWidth disabled={!isOtpSent} onClick={OtpVerify}>
             sign in
