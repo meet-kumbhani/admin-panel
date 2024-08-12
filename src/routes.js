@@ -2,7 +2,8 @@ import Employee from "layouts/employee/employee";
 import EmployeeDetails from "layouts/employee/employeeDetails";
 import Client from "layouts/client/clients";
 import ClientDetails from "layouts/client/clientDetails"
-import Inbox from "layouts/inbox";
+import Inbox from "layouts/inbox/inbox";
+import InboxDetails from "layouts/inbox/inboxDetails";
 import SignIn from "layouts/authentication/sign-in";
 import Shop from "examples/Icons/Shop";
 import CreditCard from "examples/Icons/CreditCard";
@@ -40,6 +41,13 @@ const routes = [
     route: "/inbox",
     icon: <CreditCard size="12px" />,
     component: <Inbox />,
+    noCollapse: true,
+  },
+  {
+    name: "Inbox",
+    key: "inbox",
+    route: "/inbox-details/:id",
+    component: <InboxDetails />,
     noCollapse: true,
   },
   {

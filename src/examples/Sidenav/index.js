@@ -13,6 +13,7 @@ import SidenavRoot from "examples/Sidenav/SidenavRoot";
 import sidenavLogoLabel from "examples/Sidenav/styles/sidenav";
 import { useSoftUIController, setMiniSidenav } from "context";
 import { auth } from "../../firebase/config";
+import Swal from "sweetalert2";
 
 function Sidenav({ color, brand, brandName, routes, ...rest }) {
   const [controller, dispatch] = useSoftUIController();
@@ -93,14 +94,25 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
   });
 
   const handleLogout = () => {
-    auth.signOut()
-      .then(() => {
-        console.log('User out');
-        navigate("/authentication/sign-in")
-      })
-      .catch((error) => {
-        console.error('Error signing out: ', error);
-      });
+    Swal.fire({
+      title: 'Are you sure?',
+      text: 'You will be logged out.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, log out!',
+      cancelButtonText: 'No, stay logged in'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        auth.signOut()
+          .then(() => {
+            console.log('User out');
+            navigate("/authentication/sign-in");
+          })
+          .catch((error) => {
+            console.error('Error signing out: ', error);
+          });
+      }
+    });
   };
 
   return (

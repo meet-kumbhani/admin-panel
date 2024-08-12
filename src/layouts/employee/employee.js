@@ -25,6 +25,7 @@ const Employee = () => {
      const [editingId, setEditingId] = useState(null);
      const [open, setOpen] = useState(false);
      const [loading, setLoading] = useState(true);
+     const [searchQuery, setSearchQuery] = useState('');
 
      const navigate = useNavigate()
 
@@ -32,7 +33,8 @@ const Employee = () => {
           const q = query(collection(db, 'users'), where('role', 'array-contains', 'employee'));
           const unsubscribe = onSnapshot(q, (snapshot) => {
                const userList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-               setEmployee(userList);
+               const sortedList = userList.sort((a, b) => a.name.localeCompare(b.name));
+               setEmployee(sortedList);
                setLoading(false);
           });
 
@@ -139,8 +141,17 @@ const Employee = () => {
           setOpen(false)
      };
 
+     const handleSearchChange = (e) => {
+          setSearchQuery(e.target.value.toLowerCase());
+     };
 
-     const tableRows = employee.map(user => ({
+     const filteredEmployees = employee.filter(user =>
+          user.name.toLowerCase().includes(searchQuery)
+     );
+
+
+
+     const tableRows = filteredEmployees?.map(user => ({
           name: user.name,
           email: user.email,
           phone: user.phone,
@@ -172,7 +183,7 @@ const Employee = () => {
                          <SoftButton
                               variant="gradient"
                               color="info"
-                              size="small"
+                              size="medium"
                               onClick={() => setOpen(true)}
                          >
                               Add New Employee
@@ -190,6 +201,14 @@ const Employee = () => {
                                         <Card sx={{ marginTop: 4 }}>
                                              <SoftBox display="flex" justifyContent="space-between" alignItems="center" p={3}>
                                                   <SoftTypography variant="h5">Employee List</SoftTypography>
+                                                  <SoftBox pr={1}>
+                                                       <SoftInput
+                                                            placeholder="Search..."
+                                                            icon={{ component: "search", direction: "left" }}
+                                                            value={searchQuery}
+                                                            onChange={handleSearchChange}
+                                                       />
+                                                  </SoftBox>
                                              </SoftBox>
                                              <SoftBox
                                                   sx={{

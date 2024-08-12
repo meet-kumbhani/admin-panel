@@ -2,11 +2,12 @@ import SoftBox from 'components/SoftBox'
 import DashboardLayout from 'examples/LayoutContainers/DashboardLayout'
 import { db } from '../../firebase/config'
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore'
 import SoftTypography from 'components/SoftTypography'
 import Table from 'examples/Tables/Table'
-import { Card } from '@mui/material'
+import { Card, CircularProgress } from '@mui/material'
+import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 
 const GOOGLE_MAPS_API_KEY = 'AIzaSyBHyngtjTulkJ96GKevrg7jpxwypD1Kx-k';
 
@@ -28,27 +29,9 @@ const EmployeeDetails = () => {
      const { id } = useParams();
      const [employee, setEmployee] = useState(null);
      const [attendanceRecords, setAttendanceRecords] = useState([]);
-     console.log(attendanceRecords, "<-- records");
+     const [loading, setLoading] = useState(true);
 
-
-     useEffect(() => {
-          const fetchEmployee = async () => {
-               try {
-                    const docRef = doc(db, 'users', id);
-                    const docSnap = await getDoc(docRef);
-
-                    if (docSnap.exists()) {
-                         setEmployee(docSnap.data());
-                    } else {
-                         console.log('No such document!');
-                    }
-               } catch (error) {
-                    console.error('Error fetching document: ', error);
-               }
-          };
-
-          fetchEmployee();
-     }, [id]);
+     const navigate = useNavigate()
 
      useEffect(() => {
           const fetchAttendance = async () => {
@@ -68,14 +51,36 @@ const EmployeeDetails = () => {
                               submitLocation: submitLocationName,
                          };
                     }));
+
                     setAttendanceRecords(attendanceList);
+                    setLoading(false)
                } catch (error) {
                     console.error('Error fetching attendance records: ', error);
                }
           };
 
+          const fetchEmployee = async () => {
+               try {
+                    const docRef = doc(db, 'users', id);
+                    const docSnap = await getDoc(docRef);
+
+                    if (docSnap.exists()) {
+                         setEmployee(docSnap.data());
+                    } else {
+                         console.log('No such document!');
+                    }
+               } catch (error) {
+                    console.error('Error fetching document: ', error);
+               }
+          };
+
+          fetchEmployee();
           fetchAttendance();
      }, [id]);
+
+     const handleBack = () => {
+          navigate(-1);
+     };
 
      const tableRows = attendanceRecords.map(data => {
           const startTime = new Date(data.startTime);
@@ -99,9 +104,6 @@ const EmployeeDetails = () => {
           };
      });
 
-     console.log(tableRows, "<-- table data");
-
-
      const tableColumns = [
           { name: "StartTime", align: "left" },
           { name: "EndTime", align: "left" },
@@ -114,9 +116,12 @@ const EmployeeDetails = () => {
      return (
           <DashboardLayout>
                <SoftBox pt={3}>
-                    <SoftTypography variant="h4" gutterBottom>
-                         Employee Details
-                    </SoftTypography>
+                    <SoftBox display="flex" alignItems="baseline">
+                         <ArrowBackIosNewIcon sx={{ marginRight: 2, cursor: "pointer" }} onClick={handleBack} />
+                         <SoftTypography variant="h4" gutterBottom>
+                              Employee Details
+                         </SoftTypography>
+                    </SoftBox>
 
                     {employee && (
                          <Card sx={{ marginTop: 5 }}>
@@ -126,31 +131,42 @@ const EmployeeDetails = () => {
 
                </SoftBox>
 
+               <SoftBox>
+                    {loading ? (
+                         <SoftBox display="flex" justifyContent="center" alignItems="center" height="60vh">
+                              <CircularProgress />
+                         </SoftBox>
+                    ) : (
+                         <>
+                              {attendanceRecords.length > 0 ? (
+                                   <Card sx={{ marginTop: 4 }}>
+                                        <SoftBox display="flex" justifyContent="space-between" alignItems="center" p={3}>
+                                             <SoftTypography variant="h5">Attendance List</SoftTypography>
+                                        </SoftBox>
+                                        <SoftBox
+                                             sx={{
+                                                  "& .MuiTableRow-root:not(:last-child)": {
+                                                       "& td": {
+                                                            borderBottom: ({ borders: { borderWidth, borderColor } }) =>
+                                                                 `${borderWidth[1]} solid ${borderColor}`,
+                                                       },
+                                                  },
+                                             }}
+                                        >
+                                             <Table columns={tableColumns} rows={tableRows} />
+                                        </SoftBox>
+                                   </Card>
+                              ) : (
+                                   <SoftBox sx={{ display: "flex", justifyContent: "center", height: "60vh", alignItems: "center" }}>
+                                        <SoftTypography variant="h4">No Attendance found</SoftTypography>
+                                   </SoftBox>
+                              )
+                              }
+                         </>
+                    )}
 
-               {attendanceRecords.length > 0 ? (
-                    <Card sx={{ marginTop: 4 }}>
-                         <SoftBox display="flex" justifyContent="space-between" alignItems="center" p={3}>
-                              <SoftTypography variant="h5">Attendance List</SoftTypography>
-                         </SoftBox>
-                         <SoftBox
-                              sx={{
-                                   "& .MuiTableRow-root:not(:last-child)": {
-                                        "& td": {
-                                             borderBottom: ({ borders: { borderWidth, borderColor } }) =>
-                                                  `${borderWidth[1]} solid ${borderColor}`,
-                                        },
-                                   },
-                              }}
-                         >
-                              <Table columns={tableColumns} rows={tableRows} />
-                         </SoftBox>
-                    </Card>
-               ) : (
-                    <SoftBox sx={{ display: "flex", justifyContent: "center", height: "60vh", alignItems: "center" }}>
-                         <SoftTypography variant="h4">No employees found</SoftTypography>
-                    </SoftBox>
-               )
-               }
+
+               </SoftBox>
           </DashboardLayout >
      );
 };

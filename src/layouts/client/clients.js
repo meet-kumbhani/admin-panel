@@ -14,13 +14,13 @@ import { Card, CircularProgress, Dialog, DialogActions, DialogContent, DialogTit
 import Swal from 'sweetalert2';
 
 const Client = () => {
-     const [user, setUser] = useState(null);
      const [users, setUsers] = useState([]);
      const [employees, setEmployees] = useState([]);
      const [selectedEmployees, setSelectedEmployees] = useState([]);
      const [editId, setEditId] = useState(null);
      const [open, setOpen] = useState(false);
      const [loading, setLoading] = useState(true);
+     const [searchQuery, setSearchQuery] = useState('');
      const [formValues, setFormValues] = useState({
           name: '',
           email: '',
@@ -32,16 +32,9 @@ const Client = () => {
           poc: '',
      });
 
-     const clientData = users.filter(user => user?.role?.includes('client'));
-     const navigate = useNavigate()
+     const clientData = users.filter(user => user?.role?.includes('client')).sort((a, b) => a.name.localeCompare(b.name));
 
-     useEffect(() => {
-          const unsubscribe = auth.onAuthStateChanged((user) => {
-               setUser(user);
-          });
-          return unsubscribe;
-     }, []);
-
+     const navigate = useNavigate();
 
      useEffect(() => {
           const fetchEmployees = async () => {
@@ -64,44 +57,40 @@ const Client = () => {
 
 
      useEffect(() => {
-          if (user) {
-               const getUserData = async () => {
-                    try {
-                         const usersCollection = collection(db, "users");
-                         const q = query(usersCollection);
-                         const querySnapshot = await getDocs(q);
-                         const allUsers = [];
 
-                         for (const doc of querySnapshot.docs) {
-                              const userdata = doc.data();
-                              const userId = doc.id;
-                              const clientsCollection = collection(db, "clients");
-                              const clientQuery = query(clientsCollection, where("userId", "==", userId));
-                              const clientSnapshot = await getDocs(clientQuery);
+          const getUserData = async () => {
+               try {
+                    const usersCollection = collection(db, "users");
+                    const q = query(usersCollection);
+                    const querySnapshot = await getDocs(q);
+                    const allUsers = [];
 
-                              const clients = clientSnapshot.docs.map((clientDoc) => ({
-                                   ...clientDoc.data(),
-                                   id: clientDoc.id,
-                                   createdat: clientDoc.data().createdat.toDate(),
-                              }));
+                    for (const doc of querySnapshot.docs) {
+                         const userdata = doc.data();
+                         const userId = doc.id;
+                         const clientsCollection = collection(db, "clients");
+                         const clientQuery = query(clientsCollection, where("userId", "==", userId));
+                         const clientSnapshot = await getDocs(clientQuery);
 
-                              allUsers.push({ ...userdata, id: userId, clients });
-                         }
+                         const clients = clientSnapshot.docs.map((clientDoc) => ({
+                              ...clientDoc.data(),
+                              id: clientDoc.id,
+                              createdat: clientDoc.data().createdat.toDate(),
+                         }));
 
-                         setUsers(allUsers);
-                         setLoading(false)
-                    } catch (error) {
-                         console.error("Error", error);
+                         allUsers.push({ ...userdata, id: userId, clients });
                     }
-               };
 
-               getUserData();
-          }
-     }, [user]);
-
-     useEffect(() => {
+                    setUsers(allUsers);
+                    setLoading(false)
+               } catch (error) {
+                    console.error("Error", error);
+               }
+          };
+          getUserData();
           fetchData();
-     }, [user]);
+
+     }, []);
 
      const handleEmployeeChange = (e) => {
           const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
@@ -235,54 +224,74 @@ const Client = () => {
      };
 
      const handleDelete = async (id) => {
-          try {
-               await deleteDoc(doc(db, 'users', id));
-               const clientQuery = query(collection(db, 'clients'), where('userId', '==', id));
-               const clientSnapshot = await getDocs(clientQuery);
-               clientSnapshot.forEach(async (clientDoc) => {
-                    await deleteDoc(doc(db, 'clients', clientDoc.id));
-               });
-               alert('Data successfully deleted!');
-               fetchData();
-          } catch (error) {
-               console.error('Error deleting document: ', error);
-               alert('Error deleting data!');
+          const result = await Swal.fire({
+               title: 'Are you sure?',
+               text: "You won't be able to revert this!",
+               icon: 'warning',
+               showCancelButton: true,
+               confirmButtonColor: '#3085d6',
+               cancelButtonColor: '#d33',
+               confirmButtonText: 'Yes, delete it!'
+          });
+          if (result.isConfirmed) {
+               try {
+                    await deleteDoc(doc(db, 'users', id));
+                    const clientQuery = query(collection(db, 'clients'), where('userId', '==', id));
+                    const clientSnapshot = await getDocs(clientQuery);
+                    clientSnapshot.forEach(async (clientDoc) => {
+                         await deleteDoc(doc(db, 'clients', clientDoc.id));
+                    });
+                    fetchData();
+                    Swal.fire(
+                         'Deleted!',
+                         'The client has been deleted.',
+                         'success'
+                    );
+               } catch (error) {
+                    console.error('Error deleting document: ', error);
+                    Swal.fire(
+                         'Error!',
+                         'There was an error deleting the client.',
+                         'error'
+                    );
+               }
+
           }
+
      };
 
      const fetchData = async () => {
-          if (user) {
-               const getUserData = async () => {
-                    try {
-                         const usersCollection = collection(db, "users");
-                         const q = query(usersCollection);
-                         const querySnapshot = await getDocs(q);
-                         const allUsers = [];
 
-                         for (const doc of querySnapshot.docs) {
-                              const userdata = doc.data();
-                              const userId = doc.id;
-                              const clientsCollection = collection(db, "clients");
-                              const clientQuery = query(clientsCollection, where("userId", "==", userId));
-                              const clientSnapshot = await getDocs(clientQuery);
+          const getUserData = async () => {
+               try {
+                    const usersCollection = collection(db, "users");
+                    const q = query(usersCollection);
+                    const querySnapshot = await getDocs(q);
+                    const allUsers = [];
 
-                              const clients = clientSnapshot.docs.map((clientDoc) => ({
-                                   ...clientDoc.data(),
-                                   id: clientDoc.id,
-                                   createdat: clientDoc.data().createdat.toDate(),
-                              }));
+                    for (const doc of querySnapshot.docs) {
+                         const userdata = doc.data();
+                         const userId = doc.id;
+                         const clientsCollection = collection(db, "clients");
+                         const clientQuery = query(clientsCollection, where("userId", "==", userId));
+                         const clientSnapshot = await getDocs(clientQuery);
 
-                              allUsers.push({ ...userdata, id: userId, clients });
-                         }
+                         const clients = clientSnapshot.docs.map((clientDoc) => ({
+                              ...clientDoc.data(),
+                              id: clientDoc.id,
+                              createdat: clientDoc.data().createdat.toDate(),
+                         }));
 
-                         setUsers(allUsers);
-                    } catch (error) {
-                         console.error("Error", error);
+                         allUsers.push({ ...userdata, id: userId, clients });
                     }
-               };
 
-               getUserData();
-          }
+                    setUsers(allUsers);
+               } catch (error) {
+                    console.error("Error", error);
+               }
+          };
+
+          getUserData();
      };
 
      const handleViewDetail = (id) => {
@@ -305,7 +314,15 @@ const Client = () => {
           setOpen(false);
      };
 
-     const tableRows = clientData.map(user => ({
+     const handleSearchChange = (e) => {
+          setSearchQuery(e.target.value.toLowerCase());
+     };
+
+     const filteredClient = clientData.filter(user =>
+          user.name.toLowerCase().includes(searchQuery)
+     );
+
+     const tableRows = filteredClient.map(user => ({
           name: user.name,
           email: user.email,
           phone: user.phone,
@@ -339,7 +356,7 @@ const Client = () => {
                          <SoftButton
                               variant="gradient"
                               color="info"
-                              size="small"
+                              size="medium"
                               onClick={() => setOpen(true)}
                          >
                               Add New Client
@@ -357,6 +374,14 @@ const Client = () => {
                                         <Card sx={{ marginTop: 4 }}>
                                              <SoftBox display="flex" justifyContent="space-between" alignItems="center" p={3}>
                                                   <SoftTypography variant="h5">Client List</SoftTypography>
+                                                  <SoftBox pr={1}>
+                                                       <SoftInput
+                                                            placeholder="Search..."
+                                                            icon={{ component: "search", direction: "left" }}
+                                                            value={searchQuery}
+                                                            onChange={handleSearchChange}
+                                                       />
+                                                  </SoftBox>
                                              </SoftBox>
                                              <SoftBox
                                                   sx={{
