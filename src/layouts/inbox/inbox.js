@@ -8,20 +8,20 @@ import DashboardNavbar from 'examples/Navbars/DashboardNavbar';
 import { Card, Form } from 'react-bootstrap';
 import { storage, db } from '../../firebase/config';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { collection, addDoc, getDocs, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import Swal from 'sweetalert2';
 import Table from 'examples/Tables/Table';
 import { CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { Close } from '@mui/icons-material';
+import { useGlobalContext } from '../../context/GlobalContext';
 
 const Inbox = () => {
+     const { fetchInboxData, inboxData, loading } = useGlobalContext();
      const [files, setFiles] = useState([]);
      const [name, setName] = useState('');
-     const [inboxData, setInboxData] = useState([]);
      const [open, setOpen] = useState(false);
      const [previews, setPreviews] = useState([]);
-     const [loading, setLoading] = useState(true);
      const [searchQuery, setSearchQuery] = useState('');
      const [sending, setSending] = useState(false);
 
@@ -79,31 +79,6 @@ const Inbox = () => {
                setSending(false);
           }
      };
-
-     const fetchInboxData = async () => {
-          try {
-               const querySnapshot = await getDocs(collection(db, 'inbox'));
-               const data = querySnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data(),
-                    createdAt: doc.data().createdAt.toDate()
-               }));
-               const sortedData = data.sort((a, b) => b.createdAt - a.createdAt);
-
-               const formattedData = sortedData.map(item => ({
-                    ...item,
-                    createdAt: item.createdAt.toLocaleDateString()
-               }));
-               setInboxData(formattedData);
-               setLoading(false);
-          } catch (error) {
-               Swal.fire('Error', error.message, 'error');
-          }
-     };
-
-     useEffect(() => {
-          fetchInboxData();
-     }, []);
 
      const handleCancel = () => {
           setFiles([]);

@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { collection, query, getDocs, where, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
-import { auth, db } from '../../firebase/config';
+import { db } from '../../firebase/config';
 import SoftBox from 'components/SoftBox';
 import SoftInput from 'components/SoftInput';
 import SoftTypography from 'components/SoftTypography';
@@ -12,14 +12,13 @@ import Form from 'react-bootstrap/Form';
 import { useNavigate } from 'react-router-dom';
 import { Card, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Icon } from '@mui/material';
 import Swal from 'sweetalert2';
+import { useGlobalContext } from '../../context/GlobalContext';
 
 const Client = () => {
-     const [users, setUsers] = useState([]);
-     const [employees, setEmployees] = useState([]);
+     const { users, employees, loading, fetchClientData } = useGlobalContext();
      const [selectedEmployees, setSelectedEmployees] = useState([]);
      const [editId, setEditId] = useState(null);
      const [open, setOpen] = useState(false);
-     const [loading, setLoading] = useState(true);
      const [searchQuery, setSearchQuery] = useState('');
      const [formValues, setFormValues] = useState({
           name: '',
@@ -35,62 +34,6 @@ const Client = () => {
      const clientData = users.filter(user => user?.role?.includes('client')).sort((a, b) => a.name.localeCompare(b.name));
 
      const navigate = useNavigate();
-
-     useEffect(() => {
-          const fetchEmployees = async () => {
-               try {
-                    const usersCollection = collection(db, "users");
-                    const q = query(usersCollection, where("role", "array-contains", "employee"));
-                    const querySnapshot = await getDocs(q);
-                    const employeeList = querySnapshot.docs.map(doc => ({
-                         id: doc.id,
-                         ...doc.data()
-                    }));
-                    setEmployees(employeeList);
-               } catch (error) {
-                    console.error("Error fetching employees: ", error);
-               }
-          };
-
-          fetchEmployees();
-     }, []);
-
-
-     useEffect(() => {
-
-          const getUserData = async () => {
-               try {
-                    const usersCollection = collection(db, "users");
-                    const q = query(usersCollection);
-                    const querySnapshot = await getDocs(q);
-                    const allUsers = [];
-
-                    for (const doc of querySnapshot.docs) {
-                         const userdata = doc.data();
-                         const userId = doc.id;
-                         const clientsCollection = collection(db, "clients");
-                         const clientQuery = query(clientsCollection, where("userId", "==", userId));
-                         const clientSnapshot = await getDocs(clientQuery);
-
-                         const clients = clientSnapshot.docs.map((clientDoc) => ({
-                              ...clientDoc.data(),
-                              id: clientDoc.id,
-                              createdat: clientDoc.data().createdat.toDate(),
-                         }));
-
-                         allUsers.push({ ...userdata, id: userId, clients });
-                    }
-
-                    setUsers(allUsers);
-                    setLoading(false)
-               } catch (error) {
-                    console.error("Error", error);
-               }
-          };
-          getUserData();
-          fetchData();
-
-     }, []);
 
      const handleEmployeeChange = (e) => {
           const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
@@ -191,7 +134,7 @@ const Client = () => {
                setSelectedEmployees([]);
                setEditId(null);
                setOpen(false);
-               fetchData();
+               fetchClientData();
           } catch (error) {
                console.error('Error adding document: ', error);
                Swal.fire({
@@ -223,7 +166,7 @@ const Client = () => {
           }
      };
 
-     const handleDelete = async (id) => {
+     const handleDeleteClient = async (id) => {
           const result = await Swal.fire({
                title: 'Are you sure?',
                text: "You won't be able to revert this!",
@@ -241,7 +184,7 @@ const Client = () => {
                     clientSnapshot.forEach(async (clientDoc) => {
                          await deleteDoc(doc(db, 'clients', clientDoc.id));
                     });
-                    fetchData();
+                    fetchClientData();
                     Swal.fire(
                          'Deleted!',
                          'The client has been deleted.',
@@ -258,40 +201,6 @@ const Client = () => {
 
           }
 
-     };
-
-     const fetchData = async () => {
-
-          const getUserData = async () => {
-               try {
-                    const usersCollection = collection(db, "users");
-                    const q = query(usersCollection);
-                    const querySnapshot = await getDocs(q);
-                    const allUsers = [];
-
-                    for (const doc of querySnapshot.docs) {
-                         const userdata = doc.data();
-                         const userId = doc.id;
-                         const clientsCollection = collection(db, "clients");
-                         const clientQuery = query(clientsCollection, where("userId", "==", userId));
-                         const clientSnapshot = await getDocs(clientQuery);
-
-                         const clients = clientSnapshot.docs.map((clientDoc) => ({
-                              ...clientDoc.data(),
-                              id: clientDoc.id,
-                              createdat: clientDoc.data().createdat.toDate(),
-                         }));
-
-                         allUsers.push({ ...userdata, id: userId, clients });
-                    }
-
-                    setUsers(allUsers);
-               } catch (error) {
-                    console.error("Error", error);
-               }
-          };
-
-          getUserData();
      };
 
      const handleViewDetail = (id) => {
@@ -331,7 +240,7 @@ const Client = () => {
           actions: (
                <>
                     <SoftButton variant="gradient" color="info" onClick={() => handleEdit(user.id)} size="small">Edit</SoftButton>
-                    <SoftButton variant="gradient" color="error" onClick={() => handleDelete(user.id)} size="small" style={{ marginLeft: 10 }}>Delete</SoftButton>
+                    <SoftButton variant="gradient" color="error" onClick={() => handleDeleteClient(user.id)} size="small" style={{ marginLeft: 10 }}>Delete</SoftButton>
                     <SoftButton variant="gradient" color="primary" size="small" style={{ marginLeft: 10 }} onClick={() => handleViewDetail(user.id)}>View</SoftButton>
                </>
           ),

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { collection, addDoc, query, where, onSnapshot, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import React, { useState } from 'react';
+import { collection, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import SoftBox from 'components/SoftBox';
 import SoftButton from 'components/SoftButton';
 import SoftInput from 'components/SoftInput';
@@ -12,35 +12,23 @@ import Swal from 'sweetalert2';
 import Form from 'react-bootstrap/Form';
 import { useNavigate } from 'react-router-dom';
 import { Card, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
+import { useGlobalContext } from '../../context/GlobalContext';
 
 
 const Employee = () => {
+     const { employees, loading } = useGlobalContext();
+
      const [formData, setFormData] = useState({
           name: '',
           email: '',
           phone: '',
           address: ''
      });
-     const [employee, setEmployee] = useState([]);
      const [editingId, setEditingId] = useState(null);
      const [open, setOpen] = useState(false);
-     const [loading, setLoading] = useState(true);
      const [searchQuery, setSearchQuery] = useState('');
 
      const navigate = useNavigate()
-
-     useEffect(() => {
-          const q = query(collection(db, 'users'), where('role', 'array-contains', 'employee'));
-          const unsubscribe = onSnapshot(q, (snapshot) => {
-               const userList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-               const sortedList = userList.sort((a, b) => a.name.localeCompare(b.name));
-               setEmployee(sortedList);
-               setLoading(false);
-          });
-
-          return () => unsubscribe();
-     }, []);
-
 
      const handleChange = (e) => {
           const { name, value } = e.target;
@@ -90,7 +78,7 @@ const Employee = () => {
      };
 
      const handleEdit = (id) => {
-          const userToEdit = employee.find(user => user.id === id);
+          const userToEdit = employees.find(user => user.id === id);
           setFormData(userToEdit);
           setEditingId(id);
           setOpen(true)
@@ -145,7 +133,7 @@ const Employee = () => {
           setSearchQuery(e.target.value.toLowerCase());
      };
 
-     const filteredEmployees = employee.filter(user =>
+     const filteredEmployees = employees.filter(user =>
           user.name.toLowerCase().includes(searchQuery)
      );
 
@@ -197,7 +185,7 @@ const Employee = () => {
                               </SoftBox>
                          ) : (
                               <>
-                                   {employee.length > 0 ? (
+                                   {employees.length > 0 ? (
                                         <Card sx={{ marginTop: 4 }}>
                                              <SoftBox display="flex" justifyContent="space-between" alignItems="center" p={3}>
                                                   <SoftTypography variant="h5">Employee List</SoftTypography>

@@ -8,7 +8,6 @@ import Menu from "@mui/material/Menu";
 import Icon from "@mui/material/Icon";
 import SoftBox from "components/SoftBox";
 import Breadcrumbs from "examples/Breadcrumbs";
-import NotificationItem from "examples/Items/NotificationItem";
 import {
   navbar,
   navbarContainer,
@@ -57,12 +56,6 @@ function DashboardNavbar({ absolute, light, isMini }) {
       onClose={handleCloseMenu}
       sx={{ mt: 2 }}
     >
-      <NotificationItem
-        image={<img src={team2} alt="person" />}
-        title={["New message", "from Laur"]}
-        date="13 minutes ago"
-        onClick={handleCloseMenu}
-      />
     </Menu>
   );
 

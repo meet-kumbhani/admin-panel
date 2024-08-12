@@ -1,8 +1,6 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useRef } from 'react';
 import DashboardLayout from 'examples/LayoutContainers/DashboardLayout';
 import { useNavigate, useParams } from 'react-router-dom';
-import { db } from '../../firebase/config';
-import { doc, getDoc } from 'firebase/firestore';
 import SoftBox from 'components/SoftBox';
 import SoftTypography from 'components/SoftTypography';
 import { Card } from '@mui/material';
@@ -13,31 +11,15 @@ import './inbox.css';
 import SoftButton from 'components/SoftButton';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
+import { useGlobalContext } from '../../context/GlobalContext';
 
 const InboxDetails = () => {
-     const [message, setMessage] = useState(null);
+     const { inboxData } = useGlobalContext();
      const { id } = useParams();
      const sliderRef = useRef(null);
      const navigate = useNavigate();
 
-     useEffect(() => {
-          const fetchInboxData = async () => {
-               try {
-                    const docRef = doc(db, 'inbox', id);
-                    const docSnap = await getDoc(docRef);
-
-                    if (docSnap.exists()) {
-                         setMessage(docSnap.data());
-                    } else {
-                         console.error('No such document!');
-                    }
-               } catch (error) {
-                    console.error('Error fetching document: ' + error.message);
-               }
-          };
-
-          fetchInboxData();
-     }, [id]);
+     const messageData = inboxData.find((e) => e.id === id);
 
      const settings = {
           dots: false,
@@ -59,6 +41,15 @@ const InboxDetails = () => {
           navigate(-1);
      };
 
+     const MessageDate = (date) => {
+          const d = new Date(date);
+          return isNaN(d.getTime()) ? new Date() : d;
+     };
+
+     const createdAt = messageData?.createdAt
+          ? MessageDate(messageData.createdAt)
+          : new Date();
+
      return (
           <DashboardLayout>
                <SoftBox pt={4}>
@@ -72,14 +63,14 @@ const InboxDetails = () => {
                     </SoftBox>
 
                     <SoftBox mt={2}>
-                         {message ? (
+                         {messageData ? (
                               <Card className='p-3'>
                                    <SoftBox>
                                         <SoftBox>
-                                             {message.imageUrls && message.imageUrls.length > 0 ? (
+                                             {messageData.imageUrls && messageData.imageUrls.length > 0 ? (
                                                   <>
                                                        <Slider ref={sliderRef} {...settings}>
-                                                            {message.imageUrls.map((imageUrl, index) => (
+                                                            {messageData.imageUrls.map((imageUrl, index) => (
                                                                  <div key={index} className="slick-slide">
                                                                       <img
                                                                            src={imageUrl}
@@ -90,7 +81,7 @@ const InboxDetails = () => {
                                                             ))}
                                                        </Slider>
 
-                                                       {message.imageUrls.length > 4 && (
+                                                       {messageData.imageUrls.length > 4 && (
                                                             <SoftBox display="flex" justifyContent="space-between" mt={2}>
                                                                  <SoftButton onClick={handlePrev} variant="gradient" color="light"><ArrowBackIosNewIcon /></SoftButton>
                                                                  <SoftButton onClick={handleNext} variant="gradient" color="light"><ArrowForwardIosIcon /></SoftButton>
@@ -100,8 +91,8 @@ const InboxDetails = () => {
                                              ) : (
                                                   <SoftTypography>No images available</SoftTypography>
                                              )}
-                                             <SoftTypography mt={2}><strong>Title: </strong> {message.title}</SoftTypography>
-                                             <SoftTypography><strong>Date:</strong> {new Date(message.createdAt.seconds * 1000).toLocaleDateString()}</SoftTypography>
+                                             <SoftTypography mt={2}><strong>Title: </strong> {messageData.title}</SoftTypography>
+                                             <SoftTypography><strong>Date:</strong> {createdAt.toLocaleDateString()}</SoftTypography>
                                         </SoftBox>
                                    </SoftBox>
                               </Card>
