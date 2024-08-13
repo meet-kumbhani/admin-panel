@@ -9,17 +9,16 @@ import routes from "routes";
 import brand from "./assets/images/bruce-mars.jpg";
 import { useSoftUIController, setMiniSidenav } from "context";
 import 'bootstrap/dist/css/bootstrap.css';
-import { auth } from "./firebase/config";
 import SignIn from "layouts/authentication/sign-in";
 import Client from "layouts/client/clients";
 import { CircularProgress } from "@mui/material";
+import { useGlobalContext } from "./context/GlobalContext";
 
 export default function App() {
+  const { loading, authuser } = useGlobalContext();
   const [controller, dispatch] = useSoftUIController();
-  const { miniSidenav, direction, layout, openConfigurator, sidenavColor } = controller;
+  const { miniSidenav, direction, layout, sidenavColor } = controller;
   const [onMouseEnter, setOnMouseEnter] = useState(false);
-  const [authuser, setAuthuser] = useState(null);
-  const [loading, setLoading] = useState(true);
   console.log(authuser, "<-- auth user");
 
   const { pathname } = useLocation();
@@ -37,14 +36,6 @@ export default function App() {
       setOnMouseEnter(false);
     }
   };
-
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      setAuthuser(user);
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
 
   useEffect(() => {
     document.body.setAttribute("dir", direction);
@@ -90,7 +81,6 @@ export default function App() {
             onMouseLeave={handleOnMouseLeave}
           />
           <Configurator />
-          {/* {configsButton} */}
         </>
       )}
       {layout === "vr" && <Configurator />}

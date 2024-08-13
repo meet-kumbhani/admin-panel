@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import { collection, query, getDocs, where, onSnapshot, getDoc } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { auth, db } from '../firebase/config';
 import axios from 'axios';
 
 const GlobalContext = createContext();
@@ -16,10 +16,24 @@ export const GlobalProvider = ({ children }) => {
      const [attendanceRecords, setAttendanceRecords] = useState([]);
      const [inboxData, setInboxData] = useState([]);
      const [locations, setLocations] = useState({});
+     const [authuser, setAuthuser] = useState(null);
 
      const GOOGLE_MAPS_API_KEY = 'AIzaSyBHyngtjTulkJ96GKevrg7jpxwypD1Kx-k';
 
      useEffect(() => {
+          const authuser = auth.onAuthStateChanged((user) => {
+               console.log(user, "<-- this is user");
+
+               setAuthuser(user);
+               setLoading(false);
+          });
+          return () => authuser();
+     }, []);
+
+     useEffect(() => {
+          if (!authuser) {
+               return;
+          }
 
           (async () => {
                try {
@@ -78,7 +92,7 @@ export const GlobalProvider = ({ children }) => {
 
           fetchClientData();
           fetchInboxData()
-     }, []);
+     }, [authuser]);
 
      //get client
 
@@ -191,7 +205,7 @@ export const GlobalProvider = ({ children }) => {
      };
 
      return (
-          <GlobalContext.Provider value={{ users, employees, setEmployees, loading, fetchClientData, evidenceList, locations, attendanceRecords, setAttendanceRecords, inboxData, fetchInboxData }}>
+          <GlobalContext.Provider value={{ authuser, users, employees, setEmployees, loading, fetchClientData, evidenceList, locations, attendanceRecords, setAttendanceRecords, inboxData, fetchInboxData }}>
                {children}
           </GlobalContext.Provider>
      );
