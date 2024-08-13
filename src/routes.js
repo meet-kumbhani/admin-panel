@@ -60,7 +60,7 @@ const routes = [
   {
     name: "Sign In",
     key: "sign-in",
-    route: "/authentication/sign-in",
+    route: "/",
     component: <SignIn />,
     noCollapse: true,
   },

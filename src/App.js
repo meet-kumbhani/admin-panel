@@ -6,14 +6,22 @@ import Sidenav from "examples/Sidenav";
 import Configurator from "examples/Settings";
 import theme from "assets/theme";
 import routes from "routes";
-import brand from "./assets/images/bruce-mars.jpg"
+import brand from "./assets/images/bruce-mars.jpg";
 import { useSoftUIController, setMiniSidenav } from "context";
 import 'bootstrap/dist/css/bootstrap.css';
+import { auth } from "./firebase/config";
+import SignIn from "layouts/authentication/sign-in";
+import Client from "layouts/client/clients";
+import { CircularProgress } from "@mui/material";
 
 export default function App() {
   const [controller, dispatch] = useSoftUIController();
   const { miniSidenav, direction, layout, openConfigurator, sidenavColor } = controller;
   const [onMouseEnter, setOnMouseEnter] = useState(false);
+  const [authuser, setAuthuser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  console.log(authuser, "<-- auth user");
+
   const { pathname } = useLocation();
 
   const handleOnMouseEnter = () => {
@@ -29,6 +37,14 @@ export default function App() {
       setOnMouseEnter(false);
     }
   };
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setAuthuser(user);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     document.body.setAttribute("dir", direction);
@@ -52,27 +68,45 @@ export default function App() {
       return null;
     });
 
-  return <ThemeProvider theme={theme}>
-    <CssBaseline />
-    {layout === "dashboard" && (
-      <>
-        <Sidenav
-          color={sidenavColor}
-          brand={brand}
-          brandName="Vaid Architects"
-          routes={routes}
-          onMouseEnter={handleOnMouseEnter}
-          onMouseLeave={handleOnMouseLeave}
-        />
-        <Configurator />
-        {/* {configsButton} */}
-      </>
-    )}
-    {layout === "vr" && <Configurator />}
-    <Routes>
-      {getRoutes(routes)}
-      <Route path="*" element={<Navigate to="/authentication/sign-in" />} />
-    </Routes>
-  </ThemeProvider>
+  if (loading) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
+        <CircularProgress />
+      </div>
+    );
+  }
 
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      {layout === "dashboard" && (
+        <>
+          <Sidenav
+            color={sidenavColor}
+            brand={brand}
+            brandName="Vaid Architects"
+            routes={routes}
+            onMouseEnter={handleOnMouseEnter}
+            onMouseLeave={handleOnMouseLeave}
+          />
+          <Configurator />
+          {/* {configsButton} */}
+        </>
+      )}
+      {layout === "vr" && <Configurator />}
+      <Routes>
+        {authuser == null ? (
+          <>
+            <Route path="*" element={<SignIn />} />
+          </>
+        ) : (
+          <>
+            <Route path="/" element={<Navigate to="/client" />} />
+            {getRoutes(routes)}
+            <Route path="/client" element={<Client />} />
+          </>
+        )}
+      </Routes>
+    </ThemeProvider>
+  );
 }

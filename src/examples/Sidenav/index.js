@@ -110,7 +110,7 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
         auth.signOut()
           .then(() => {
             console.log('User out');
-            navigate("/authentication/sign-in");
+            navigate("/");
           })
           .catch((error) => {
             console.error('Error signing out: ', error);
