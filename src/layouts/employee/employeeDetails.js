@@ -18,7 +18,12 @@ const EmployeeDetails = () => {
 
      const matchingAttendance = attendanceRecords.filter(e => e.userId === id);
      const filteredEmployees = employees?.filter(e => e.id == id)
-     const nameOfEmplpoyee = filteredEmployees?.map((name) => name.name)
+     const employeeDetails = filteredEmployees?.map((employee) => ({
+          name: employee.name,
+          email: employee.email,
+          phone: employee.phone,
+          address: employee.address,
+     }))[0];
 
      const tableRows = matchingAttendance.map(data => {
           const startTime = new Date(data.startTime);
@@ -61,8 +66,15 @@ const EmployeeDetails = () => {
                          </SoftTypography>
                     </SoftBox>
 
-                    <Card sx={{ marginTop: 5 }}>
-                         <SoftTypography sx={{ padding: 2 }}><strong>Employee Name:</strong> {nameOfEmplpoyee}</SoftTypography>
+                    <Card sx={{ marginTop: 3 }}>
+                         <SoftBox p={3}>
+                              <SoftTypography variant="h5"><strong>Employee Name:</strong> {employeeDetails?.name}</SoftTypography>
+                              <SoftBox mt={2}>
+                                   <SoftTypography variant="h6"><strong>Employee Email:</strong> {employeeDetails?.email}</SoftTypography>
+                                   <SoftTypography variant="h6"><strong>Employee Phone:</strong> {employeeDetails?.phone}</SoftTypography>
+                                   <SoftTypography variant="h6"><strong>Employee Address:</strong> {employeeDetails?.address}</SoftTypography>
+                              </SoftBox>
+                         </SoftBox>
                     </Card>
 
                </SoftBox>

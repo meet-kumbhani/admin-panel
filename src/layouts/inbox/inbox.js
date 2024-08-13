@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { Formik, Form, Field, ErrorMessage } from 'formik';
+import * as Yup from 'yup';
 import SoftBox from 'components/SoftBox';
 import SoftButton from 'components/SoftButton';
 import SoftInput from 'components/SoftInput';
 import SoftTypography from 'components/SoftTypography';
 import DashboardLayout from 'examples/LayoutContainers/DashboardLayout';
 import DashboardNavbar from 'examples/Navbars/DashboardNavbar';
-import { Card, Form } from 'react-bootstrap';
+import { Card } from 'react-bootstrap';
 import { storage, db } from '../../firebase/config';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -19,7 +21,6 @@ import { useGlobalContext } from '../../context/GlobalContext';
 const Inbox = () => {
      const { fetchInboxData, inboxData, loading } = useGlobalContext();
      const [files, setFiles] = useState([]);
-     const [name, setName] = useState('');
      const [open, setOpen] = useState(false);
      const [previews, setPreviews] = useState([]);
      const [searchQuery, setSearchQuery] = useState('');
@@ -35,21 +36,13 @@ const Inbox = () => {
           setPreviews((prevPreviews) => [...prevPreviews, ...newPreviews]);
      };
 
-     const handleNameChange = (event) => {
-          setName(event.target.value);
-     };
-
      const handleRemovePreview = (index) => {
           setFiles(files.filter((_, i) => i !== index));
           setPreviews(previews.filter((_, i) => i !== index));
      };
 
-     const handleSubmit = async (event) => {
-          event.preventDefault();
-          if (!name) {
-               alert('Please provide a title');
-               return;
-          }
+     const handleSubmit = async (values) => {
+          const { name } = values;
           setSending(true);
 
           try {
@@ -66,9 +59,14 @@ const Inbox = () => {
                     createdAt: serverTimestamp(),
                     imageUrls: fileUrls,
                });
-
-               Swal.fire('Success', 'Files uploaded and data saved successfully!', 'success');
-               setName('');
+               Swal.fire({
+                    title: 'Success',
+                    text: 'Files uploaded and data saved successfully!',
+                    icon: 'success',
+                    customClass: {
+                         container: 'swal2-container-custom'
+                    }
+               });
                setFiles([]);
                setPreviews([]);
                setOpen(false);
@@ -82,7 +80,6 @@ const Inbox = () => {
 
      const handleCancel = () => {
           setFiles([]);
-          setName('');
           setPreviews([]);
           setOpen(false);
      };
@@ -113,6 +110,10 @@ const Inbox = () => {
           { name: "Date", align: "left" },
           { name: "actions", align: "left" },
      ];
+
+     const validationSchema = Yup.object().shape({
+          name: Yup.string().required('Title is required'),
+     });
 
      return (
           <DashboardLayout>
@@ -175,77 +176,89 @@ const Inbox = () => {
                <Dialog open={open} onClose={handleCancel} fullWidth maxWidth="md">
                     <DialogTitle>Add Message</DialogTitle>
                     <DialogContent>
-                         <Form onSubmit={handleSubmit}>
-                              <SoftBox mb={0.5}>
-                                   <SoftTypography component="label" variant="caption" fontWeight="bold">
-                                        Name
-                                   </SoftTypography>
-                                   <SoftInput
-                                        placeholder="Name"
-                                        name="name"
-                                        value={name}
-                                        onChange={handleNameChange}
-                                        fullWidth
-                                        multiline
-                                        rows={1}
-                                   />
-                              </SoftBox>
-                              <SoftBox>
-                                   <SoftTypography component="label" variant="caption" fontWeight="bold">
-                                        Upload image
-                                   </SoftTypography>
-                                   <input
-                                        type="file"
-                                        className='form-control'
-                                        multiple
-                                        onChange={handleFileChange}
-                                   />
-                              </SoftBox>
-                              <SoftBox mt={2}>
-                                   {previews.length > 0 && (
-                                        <SoftBox display="flex" flexWrap="wrap">
-                                             {previews?.map((preview, index) => (
-                                                  <SoftBox key={index} position="relative" mr={2} mb={2}>
-                                                       <img
-                                                            src={preview}
-                                                            alt={`Preview ${index}`}
-                                                            style={{ width: '100px', height: '100px', borderRadius: '8px' }}
-                                                       />
-                                                       <IconButton
-                                                            onClick={() => handleRemovePreview(index)}
-                                                            style={{
-                                                                 position: 'absolute',
-                                                                 top: 0,
-                                                                 padding: 0,
-                                                                 right: 0,
-                                                            }}
-                                                       >
-                                                            <Close />
-                                                       </IconButton>
-                                                  </SoftBox>
-                                             ))}
+                         <Formik
+                              initialValues={{ name: '' }}
+                              validationSchema={validationSchema}
+                              onSubmit={handleSubmit}
+                         >
+                              {({ handleSubmit, handleChange, values, touched, errors }) => (
+                                   <Form onSubmit={handleSubmit}>
+                                        <SoftBox mb={0.5}>
+                                             <SoftTypography component="label" variant="caption" fontWeight="bold">
+                                                  Title
+                                             </SoftTypography>
+                                             <Field
+                                                  as={SoftInput}
+                                                  placeholder="Title"
+                                                  name="name"
+                                                  value={values.name}
+                                                  onChange={handleChange}
+                                                  fullWidth
+                                                  multiline
+                                                  rows={1}
+                                                  error={touched.name && errors.name}
+                                                  helperText={touched.name && errors.name}
+                                             />
+                                             <ErrorMessage className="firmik-error" name="name" component="div" style={{ color: 'red', fontSize: 12 }} />
                                         </SoftBox>
-                                   )}
-                              </SoftBox>
-                         </Form>
+                                        <SoftBox>
+                                             <SoftTypography component="label" variant="caption" fontWeight="bold">
+                                                  Upload image
+                                             </SoftTypography>
+                                             <input
+                                                  type="file"
+                                                  className='form-control'
+                                                  multiple
+                                                  onChange={handleFileChange}
+                                             />
+                                        </SoftBox>
+                                        <SoftBox mt={2}>
+                                             {previews.length > 0 && (
+                                                  <SoftBox display="flex" flexWrap="wrap">
+                                                       {previews?.map((preview, index) => (
+                                                            <SoftBox key={index} position="relative" mr={2} mb={2}>
+                                                                 <img
+                                                                      src={preview}
+                                                                      alt={`Preview ${index}`}
+                                                                      style={{ width: '100px', height: '100px', borderRadius: '8px' }}
+                                                                 />
+                                                                 <IconButton
+                                                                      onClick={() => handleRemovePreview(index)}
+                                                                      style={{
+                                                                           position: 'absolute',
+                                                                           top: 0,
+                                                                           padding: 0,
+                                                                           right: 0,
+                                                                      }}
+                                                                 >
+                                                                      <Close />
+                                                                 </IconButton>
+                                                            </SoftBox>
+                                                       ))}
+                                                  </SoftBox>
+                                             )}
+                                        </SoftBox>
+                                        <DialogActions>
+                                             <SoftButton
+                                                  onClick={handleCancel}
+                                                  variant="outlined"
+                                                  color="secondary"
+                                             >
+                                                  Cancel
+                                             </SoftButton>
+                                             <SoftButton
+                                                  type="submit"
+                                                  variant="contained"
+                                                  color="primary"
+                                                  disabled={sending}
+                                             >
+                                                  {sending ? 'Sending...' : 'Send'}
+                                             </SoftButton>
+                                        </DialogActions>
+                                   </Form>
+                              )}
+                         </Formik>
                     </DialogContent>
-                    <DialogActions>
-                         <SoftButton
-                              onClick={handleCancel}
-                              variant="outlined"
-                              color="secondary"
-                         >
-                              Cancel
-                         </SoftButton>
-                         <SoftButton
-                              onClick={handleSubmit}
-                              variant="contained"
-                              color="primary"
-                              disabled={sending}
-                         >
-                              {sending ? 'Sending...' : 'Send'}
-                         </SoftButton>
-                    </DialogActions>
                </Dialog>
           </DashboardLayout>
      );

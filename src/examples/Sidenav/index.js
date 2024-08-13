@@ -14,6 +14,7 @@ import sidenavLogoLabel from "examples/Sidenav/styles/sidenav";
 import { useSoftUIController, setMiniSidenav } from "context";
 import { auth } from "../../firebase/config";
 import Swal from "sweetalert2";
+import "../../assets/modalStyles/modal.css"
 
 function Sidenav({ color, brand, brandName, routes, ...rest }) {
   const [controller, dispatch] = useSoftUIController();
@@ -100,7 +101,10 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Yes, log out!',
-      cancelButtonText: 'No, stay logged in'
+      cancelButtonText: 'No, stay logged in',
+      customClass: {
+        container: 'swal2-container-custom'
+      }
     }).then((result) => {
       if (result.isConfirmed) {
         auth.signOut()

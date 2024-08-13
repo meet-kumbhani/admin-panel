@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { collection, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import React, { useState, useEffect } from 'react';
+import { collection, addDoc, updateDoc, deleteDoc, doc, getDoc, query, where, onSnapshot } from 'firebase/firestore';
 import SoftBox from 'components/SoftBox';
 import SoftButton from 'components/SoftButton';
 import SoftInput from 'components/SoftInput';
@@ -9,79 +9,106 @@ import DashboardNavbar from 'examples/Navbars/DashboardNavbar';
 import { db } from '../../firebase/config';
 import Table from 'examples/Tables/Table';
 import Swal from 'sweetalert2';
-import Form from 'react-bootstrap/Form';
 import { useNavigate } from 'react-router-dom';
 import { Card, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
 import { useGlobalContext } from '../../context/GlobalContext';
+import { ErrorMessage, Formik, Field, Form as FormikForm } from 'formik';
+import * as Yup from 'yup';
+import "../../assets/modalStyles/modal.css"
 
+const validationSchema = Yup.object().shape({
+     name: Yup.string().required('Name is required'),
+     email: Yup.string().email('Invalid email format').required('Email is required'),
+     phone: Yup.string().matches(/^\+\d{1,3}\d{1,14}(?:x.+)?$/, 'Phone number must include a country code').required('Phone number is required'),
+     address: Yup.string().required('Address is required'),
+});
 
 const Employee = () => {
-     const { employees, loading } = useGlobalContext();
-
-     const [formData, setFormData] = useState({
+     const { employees, loading, setEmployees } = useGlobalContext();
+     const [editingId, setEditingId] = useState(null);
+     const [open, setOpen] = useState(false);
+     const [searchQuery, setSearchQuery] = useState('');
+     const [initialValues, setInitialValues] = useState({
           name: '',
           email: '',
           phone: '',
           address: ''
      });
-     const [editingId, setEditingId] = useState(null);
-     const [open, setOpen] = useState(false);
-     const [searchQuery, setSearchQuery] = useState('');
 
-     const navigate = useNavigate()
+     const navigate = useNavigate();
 
-     const handleChange = (e) => {
-          const { name, value } = e.target;
-          setFormData({ ...formData, [name]: value });
-     };
-
-     const handleSubmit = async (e) => {
-          e.preventDefault();
-
-          try {
-               if (editingId) {
-                    await updateDoc(doc(db, 'users', editingId), formData);
-                    setEditingId(null);
-               } else {
-                    await addDoc(collection(db, 'users'), {
-                         ...formData,
-                         active: true,
-                         fcmtoken: [],
-                         groups: [],
-                         role: ['employee']
-                    });
-               }
-               setFormData({
+     useEffect(() => {
+          if (editingId) {
+               const fetchEmployeeData = async () => {
+                    try {
+                         const employeeDoc = doc(db, 'users', editingId);
+                         const employeeSnap = await getDoc(employeeDoc);
+                         if (employeeSnap.exists()) {
+                              setInitialValues(employeeSnap.data());
+                         } else {
+                              console.log("No such document!");
+                         }
+                    } catch (error) {
+                         console.error("Error fetching document: ", error);
+                    }
+               };
+               fetchEmployeeData();
+          } else {
+               setInitialValues({
                     name: '',
                     email: '',
                     phone: '',
                     address: ''
                });
+          }
+     }, [editingId]);
+
+     const handleSubmit = async (values, { setSubmitting }) => {
+          try {
+               if (editingId) {
+                    await updateDoc(doc(db, 'users', editingId), values);
+                    setEmployees(prev => prev.map(emp => (emp.id === editingId ? { id: editingId, ...values } : emp)));
+                    setEditingId(null);
+               } else {
+                    const docRef = await addDoc(collection(db, 'users'), {
+                         ...values,
+                         active: true,
+                         fcmtoken: [],
+                         groups: [],
+                         role: ['employee']
+                    });
+                    setEmployees(prev => [...prev, { id: docRef.id, ...values }]);
+               }
                Swal.fire({
                     position: "middle",
                     icon: "success",
                     title: "Data successfully added!",
                     showConfirmButton: false,
-                    timer: 1500
+                    timer: 1500,
+                    customClass: {
+                         container: 'swal2-container-custom'
+                    }
                });
-               setOpen(false)
+               setOpen(false);
           } catch (error) {
                console.error("Error adding Data", error);
                Swal.fire({
                     position: "middle",
-                    icon: "success",
+                    icon: "error",
                     title: "Error adding Data",
                     showConfirmButton: false,
-                    timer: 1500
+                    timer: 1500,
+                    customClass: {
+                         container: 'swal2-container-custom'
+                    }
                });
           }
+          setSubmitting(false);
      };
 
      const handleEdit = (id) => {
-          const userToEdit = employees.find(user => user.id === id);
-          setFormData(userToEdit);
           setEditingId(id);
-          setOpen(true)
+          setOpen(true);
      };
 
      const handleDelete = async (id) => {
@@ -92,24 +119,34 @@ const Employee = () => {
                showCancelButton: true,
                confirmButtonColor: '#3085d6',
                cancelButtonColor: '#d33',
-               confirmButtonText: 'Yes, delete it!'
+               confirmButtonText: 'Yes, delete it!',
+               customClass: {
+                    container: 'swal2-container-custom'
+               }
           });
 
           if (result.isConfirmed) {
                try {
                     await deleteDoc(doc(db, 'users', id));
-                    Swal.fire(
-                         'Deleted!',
-                         'The employee has been deleted.',
-                         'success'
-                    );
+                    setEmployees(prev => prev.filter(emp => emp.id !== id));
+                    Swal.fire({
+                         title: 'Deleted!',
+                         text: 'The employee has been deleted.',
+                         icon: 'success',
+                         customClass: {
+                              container: 'swal2-container-custom'
+                         }
+                    });
                } catch (error) {
                     console.error("Error deleting document: ", error);
-                    Swal.fire(
-                         'Error!',
-                         'There was an error deleting the employee.',
-                         'error'
-                    );
+                    Swal.fire({
+                         title: 'Error!',
+                         text: 'There was an error deleting the employee.',
+                         icon: 'error',
+                         customClass: {
+                              container: 'swal2-container-custom'
+                         }
+                    });
                }
           }
      };
@@ -119,14 +156,8 @@ const Employee = () => {
      };
 
      const handleCancel = () => {
-          setFormData({
-               name: '',
-               email: '',
-               phone: '',
-               address: ''
-          });
           setEditingId(null);
-          setOpen(false)
+          setOpen(false);
      };
 
      const handleSearchChange = (e) => {
@@ -137,9 +168,8 @@ const Employee = () => {
           user.name.toLowerCase().includes(searchQuery)
      );
 
-
-
-     const tableRows = filteredEmployees?.map(user => ({
+     const tableRows = filteredEmployees.map(user => ({
+          key: user.id,
           name: user.name,
           email: user.email,
           phone: user.phone,
@@ -222,81 +252,108 @@ const Employee = () => {
                <Dialog open={open} onClose={handleCancel} fullWidth maxWidth="md">
                     <DialogTitle>{editingId ? 'Edit Employee' : 'Add New Employee'}</DialogTitle>
                     <DialogContent>
-                         <Form onSubmit={handleSubmit}>
-                              <SoftBox mb={1}>
-                                   <SoftBox mb={1} ml={0.5}>
-                                        <SoftTypography component="label" variant="caption" fontWeight="bold">
-                                             Name
-                                        </SoftTypography>
-                                   </SoftBox>
-                                   <SoftInput
-                                        name="name"
-                                        value={formData.name}
-                                        onChange={handleChange}
-                                        placeholder="Enter name"
-                                   />
-                              </SoftBox>
+                         <Formik
+                              initialValues={initialValues}
+                              validationSchema={validationSchema}
+                              onSubmit={handleSubmit}
+                              enableReinitialize
+                         >
+                              {({ values, handleChange, handleBlur, handleSubmit, isSubmitting }) => (
+                                   <FormikForm onSubmit={handleSubmit}>
+                                        <SoftBox mb={1}>
+                                             <SoftBox mb={1} ml={0.5}>
+                                                  <SoftTypography component="label" variant="caption" fontWeight="bold">
+                                                       Name
+                                                  </SoftTypography>
+                                             </SoftBox>
+                                             <Field
+                                                  as={SoftInput}
+                                                  name="name"
+                                                  placeholder="Enter name"
+                                                  value={values.name}
+                                                  onChange={handleChange}
+                                                  onBlur={handleBlur}
+                                             />
+                                             <ErrorMessage className="firmik-error" name="name" component="div" style={{ color: 'red', fontSize: 12 }} />
+                                        </SoftBox>
 
-                              <SoftBox mb={1}>
-                                   <SoftBox mb={1} ml={0.5}>
-                                        <SoftTypography component="label" variant="caption" fontWeight="bold">
-                                             E-mail
-                                        </SoftTypography>
-                                   </SoftBox>
-                                   <SoftInput
-                                        name="email"
-                                        type="email"
-                                        value={formData.email}
-                                        onChange={handleChange}
-                                        placeholder="Enter email"
-                                   />
-                              </SoftBox>
+                                        <SoftBox mb={1}>
+                                             <SoftBox mb={1} ml={0.5}>
+                                                  <SoftTypography component="label" variant="caption" fontWeight="bold">
+                                                       E-mail
+                                                  </SoftTypography>
+                                             </SoftBox>
+                                             <Field
+                                                  as={SoftInput}
+                                                  name="email"
+                                                  type="email"
+                                                  placeholder="Enter email"
+                                                  value={values.email}
+                                                  onChange={handleChange}
+                                                  onBlur={handleBlur}
+                                             />
+                                             <ErrorMessage className="firmik-error" name="email" component="div" style={{ color: 'red', fontSize: 12 }} />
 
-                              <SoftBox mb={1}>
-                                   <SoftBox mb={1} ml={0.5}>
-                                        <SoftTypography component="label" variant="caption" fontWeight="bold">
-                                             Phone
-                                        </SoftTypography>
-                                   </SoftBox>
-                                   <SoftInput
-                                        name="phone"
-                                        value={formData.phone}
-                                        onChange={handleChange}
-                                        placeholder="Enter phone number"
-                                   />
-                              </SoftBox>
+                                        </SoftBox>
 
-                              <SoftBox mb={1}>
-                                   <SoftBox mb={1} ml={0.5}>
-                                        <SoftTypography component="label" variant="caption" fontWeight="bold">
-                                             Address
-                                        </SoftTypography>
-                                   </SoftBox>
-                                   <SoftInput
-                                        name="address"
-                                        value={formData.address}
-                                        onChange={handleChange}
-                                        placeholder="Enter address"
-                                   />
-                              </SoftBox>
-                         </Form>
+                                        <SoftBox mb={1}>
+                                             <SoftBox mb={1} ml={0.5}>
+                                                  <SoftTypography component="label" variant="caption" fontWeight="bold">
+                                                       Phone
+                                                  </SoftTypography>
+                                             </SoftBox>
+                                             <Field
+                                                  as={SoftInput}
+                                                  name="phone"
+                                                  placeholder="Enter phone number"
+                                                  value={values.phone}
+                                                  onChange={handleChange}
+                                                  onBlur={handleBlur}
+                                             />
+                                             <ErrorMessage className="firmik-error" name="phone" component="div" style={{ color: 'red', fontSize: 12 }} />
+
+                                        </SoftBox>
+
+                                        <SoftBox mb={1}>
+                                             <SoftBox mb={1} ml={0.5}>
+                                                  <SoftTypography component="label" variant="caption" fontWeight="bold">
+                                                       Address
+                                                  </SoftTypography>
+                                             </SoftBox>
+                                             <Field
+                                                  as={SoftInput}
+                                                  name="address"
+                                                  placeholder="Enter address"
+                                                  value={values.address}
+                                                  onChange={handleChange}
+                                                  onBlur={handleBlur}
+                                             />
+                                             <ErrorMessage className="firmik-error" name="address" component="div" style={{ color: 'red', fontSize: 12 }} />
+
+                                        </SoftBox>
+
+                                        <DialogActions>
+                                             <SoftButton
+                                                  onClick={handleCancel}
+                                                  variant="outlined"
+                                                  color="secondary"
+                                             >
+                                                  Cancel
+                                             </SoftButton>
+                                             <SoftButton
+                                                  type="submit"
+                                                  variant="contained"
+                                                  color="primary"
+                                                  disabled={isSubmitting}
+                                             >
+                                                  {editingId ? 'Update' : 'Add'}
+                                             </SoftButton>
+                                        </DialogActions>
+                                   </FormikForm>
+                              )}
+                         </Formik>
+
                     </DialogContent>
-                    <DialogActions>
-                         <SoftButton
-                              onClick={handleCancel}
-                              variant="outlined"
-                              color="secondary"
-                         >
-                              Cancel
-                         </SoftButton>
-                         <SoftButton
-                              onClick={handleSubmit}
-                              variant="contained"
-                              color="primary"
-                         >
-                              {editingId ? 'Update' : 'Add'}
-                         </SoftButton>
-                    </DialogActions>
                </Dialog>
           </DashboardLayout>
      );

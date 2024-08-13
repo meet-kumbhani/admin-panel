@@ -9,13 +9,21 @@ import L from 'leaflet';
 import location from "../../assets/images/location.png";
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import { useGlobalContext } from '../../context/GlobalContext';
+import { Card } from '@mui/material';
 
 const ClientDetails = () => {
      const { id } = useParams();
-     const { evidenceList, locations } = useGlobalContext();
+     const { evidenceList, locations, users } = useGlobalContext();
      const [selectedLocation, setSelectedLocation] = useState(null);
      const mapRef = useRef(null);
      const navigate = useNavigate();
+
+
+     const filteredClient = users.filter((e) => e.id === id);
+     const client = filteredClient.length > 0 ? filteredClient[0] : null;
+     console.log(client.clients.map((i) => i.sitename), "<--- client");
+
+
 
      const customIcon = L.icon({
           iconUrl: location,
@@ -46,6 +54,35 @@ const ClientDetails = () => {
                               Client Details
                          </SoftTypography>
                     </SoftBox>
+
+                    <Card>
+                         {client ? (
+                              <SoftBox p={3}>
+                                   <SoftTypography variant="h5">Client Name: {client.name}</SoftTypography>
+                                   <SoftBox mt={1}>
+                                        <SoftTypography variant="h6">Client Email: {client.email}</SoftTypography>
+                                        <SoftTypography variant="h6">Client Address: {client.address}</SoftTypography>
+                                        <SoftTypography variant="h6">Client Phone: {client.phone}</SoftTypography>
+                                        <SoftBox mt={3}>
+                                             <SoftTypography variant="h5">Client Sites:</SoftTypography>
+                                             {client.clients && client.clients.length > 0 ? (
+                                                  client.clients.map((site, index) => (
+                                                       <SoftBox mt={1} key={index}>
+                                                            <SoftTypography variant="h6">Site Name: {site.sitename}</SoftTypography>
+                                                            <SoftTypography variant="h6">Site Location: {site.sitelocation}</SoftTypography>
+                                                            <SoftTypography variant="h6">Site Address: {site.siteaddress}</SoftTypography>
+                                                       </SoftBox>
+                                                  ))
+                                             ) : (
+                                                  <SoftTypography variant="h6">No sites available.</SoftTypography>
+                                             )}
+                                        </SoftBox>
+                                   </SoftBox>
+                              </SoftBox>
+                         ) : (
+                              <SoftTypography variant="h6">Client not found.</SoftTypography>
+                         )}
+                    </Card>
 
                     <SoftBox mt={2} display="flex" height="calc(100vh - 100px)" gap={1}>
                          {matchingEvidence.length > 0 ? (

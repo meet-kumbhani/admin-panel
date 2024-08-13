@@ -20,35 +20,6 @@ export const GlobalProvider = ({ children }) => {
      const GOOGLE_MAPS_API_KEY = 'AIzaSyBHyngtjTulkJ96GKevrg7jpxwypD1Kx-k';
 
      useEffect(() => {
-          (async () => {
-               try {
-                    const usersCollection = collection(db, "users");
-                    const q = query(usersCollection);
-                    const querySnapshot = await getDocs(q);
-                    const allUsers = [];
-
-                    for (const doc of querySnapshot.docs) {
-                         const userdata = doc.data();
-                         const userId = doc.id;
-                         const clientsCollection = collection(db, "clients");
-                         const clientQuery = query(clientsCollection, where("userId", "==", userId));
-                         const clientSnapshot = await getDocs(clientQuery);
-
-                         const clients = clientSnapshot.docs.map((clientDoc) => ({
-                              ...clientDoc.data(),
-                              id: clientDoc.id,
-                              createdat: clientDoc.data().createdat.toDate(),
-                         }));
-
-                         allUsers.push({ ...userdata, id: userId, clients });
-                    }
-
-                    setUsers(allUsers);
-                    setLoading(false);
-               } catch (error) {
-                    console.error("Error", error);
-               }
-          })();
 
           (async () => {
                try {
@@ -220,7 +191,7 @@ export const GlobalProvider = ({ children }) => {
      };
 
      return (
-          <GlobalContext.Provider value={{ users, employees, loading, fetchClientData, evidenceList, locations, attendanceRecords, setAttendanceRecords, inboxData, fetchInboxData }}>
+          <GlobalContext.Provider value={{ users, employees, setEmployees, loading, fetchClientData, evidenceList, locations, attendanceRecords, setAttendanceRecords, inboxData, fetchInboxData }}>
                {children}
           </GlobalContext.Provider>
      );
